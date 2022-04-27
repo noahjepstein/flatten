@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import copy
+import functools
 import json
 import re
 import sys
@@ -27,6 +28,17 @@ def check_if_numbers_are_consecutive(list_):
         True if second - first == 1 else False
         for first, second in zip(list_[:-1], list_[1:])
     )
+
+@functools.cache
+def _get_unique_columns(keys, separator):
+    unique_integers = list(set([separator + char for key
+                                in keys for char in key if char.isdigit()]))
+    regex = '|'.join(unique_integers)
+    regex += "|" + regex.replace(".", "")
+    unique_columns = list(set([re.sub("(" + regex + ")", "", key)
+                               for key in keys]))
+    return unique_columns
+
 
 
 def _construct_key(previous_key, separator, new_key, replace_separators=None):
@@ -334,14 +346,8 @@ def flatten_preserve_lists(nested_dict, separator="_",
 
     # get unique column names, without the integers
     # TODO: potential issue: what if column names have digits naturally?
+    unique_columns = _get_unique_columns(tuple(flattened_dict.keys()), separator)
     reskeys = list(flattened_dict.keys())
-    unique_integers = list(set([separator + char for key
-                                in reskeys for char in key if char.isdigit()]))
-    regex = '|'.join(unique_integers)
-    regex += "|" + regex.replace(".", "")
-    unique_columns = list(set([re.sub("(" + regex + ")", "", key)
-                               for key in reskeys]))
-
     # create global dict, now with unique column names
     prebuilt_flattened_dict = {column: None for column in unique_columns}
 
@@ -352,6 +358,8 @@ def flatten_preserve_lists(nested_dict, separator="_",
                          max_depth_inner=max_depth)
 
     return list_prebuilt_flattened_dict['0']
+
+
 
 
 def _unflatten_asserts(flat_dict, separator):
